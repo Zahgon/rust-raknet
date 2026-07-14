@@ -2,50 +2,24 @@ use std::{collections::HashMap, net::SocketAddr};
 
 use crate::{datatype::*, error::*, fragment::FragmentQ, raknet_log_debug, utils::*};
 
-/// Enumeration type options for Raknet transport reliability
 #[derive(Clone)]
 pub enum Reliability {
-    /// Unreliable packets are sent by straight UDP. They may arrive out of order, or not at all. This is best for data that is unimportant, or data that you send very frequently so even if some packets are missed newer packets will compensate.
-    /// Advantages - These packets don't need to be acknowledged by the network, saving the size of a UDP header in acknowledgment (about 50 bytes or so). The savings can really add up.
-    /// Disadvantages - No packet ordering, packets may never arrive, these packets are the first to get dropped if the send buffer is full.
+    
     Unreliable = 0x00,
-    /// Unreliable sequenced packets are the same as unreliable packets, except that only the newest packet is ever accepted. Older packets are ignored. Advantages - Same low overhead as unreliable packets, and you don't have to worry about older packets changing your data to old values.
-    /// Disadvantages - A LOT of packets will be dropped since they may never arrive because of UDP and may be dropped even when they do arrive. These packets are the first to get dropped if the send buffer is full. The last packet sent may never arrive, which can be a problem if you stop sending packets at some particular point.
+    
     UnreliableSequenced = 0x01,
-    /// Reliable packets are UDP packets monitored by a reliablilty layer to ensure they arrive at the destination.
-    /// Advantages - You know the packet will get there. Eventually...
-    /// Disadvantages - Retransmissions and acknowledgments can add significant bandwidth requirements. Packets may arrive very late if the network is busy. No packet ordering.
+    
     Reliable = 0x02,
-    /// Reliable ordered packets are UDP packets monitored by a reliability layer to ensure they arrive at the destination and are ordered at the destination. Advantages - The packet will get there and in the order it was sent. These are by far the easiest to program for because you don't have to worry about strange behavior due to out of order or lost packets.
-    /// Disadvantages - Retransmissions and acknowledgments can add significant bandwidth requirements. Packets may arrive very late if the network is busy. One late packet can delay many packets that arrived sooner, resulting in significant lag spikes. However, this disadvantage can be mitigated by the clever use of ordering streams .
+    
     ReliableOrdered = 0x03,
-    /// Reliable sequenced packets are UDP packets monitored by a reliability layer to ensure they arrive at the destination and are sequenced at the destination.
-    /// Advantages - You get the reliability of UDP packets, the ordering of ordered packets, yet don't have to wait for old packets. More packets will arrive with this method than with the unreliable sequenced method, and they will be distributed more evenly. The most important advantage however is that the latest packet sent will arrive, where with unreliable sequenced the latest packet sent may not arrive.
-    /// Disadvantages - Wasteful of bandwidth because it uses the overhead of reliable UDP packets to ensure late packets arrive that just get ignored anyway.
+    
     ReliableSequenced = 0x04,
 }
 
 impl Reliability {
-    pub fn to_u8(&self) -> u8 {
-        match self {
-            Reliability::Unreliable => 0x00,
-            Reliability::UnreliableSequenced => 0x01,
-            Reliability::Reliable => 0x02,
-            Reliability::ReliableOrdered => 0x03,
-            Reliability::ReliableSequenced => 0x04,
-        }
-    }
+    pub fn to_u8(&self) -> u8 { panic!("STUB: not implemented") }
 
-    pub fn from(flags: u8) -> Result<Self> {
-        match flags {
-            0x00 => Ok(Reliability::Unreliable),
-            0x01 => Ok(Reliability::UnreliableSequenced),
-            0x02 => Ok(Reliability::Reliable),
-            0x03 => Ok(Reliability::ReliableOrdered),
-            0x04 => Ok(Reliability::ReliableSequenced),
-            _ => Err(RaknetError::IncorrectReliability),
-        }
-    }
+    pub fn from(flags: u8) -> Result<Self> { panic!("STUB: not implemented") }
 }
 
 const NEEDS_B_AND_AS_FLAG: u8 = 0x4;
@@ -68,195 +42,22 @@ pub struct FrameSetPacket {
 }
 
 impl FrameSetPacket {
-    pub fn new(r: Reliability, data: Vec<u8>) -> FrameSetPacket {
-        let flag = r.to_u8() << 5;
+    pub fn new(r: Reliability, data: Vec<u8>) -> FrameSetPacket { panic!("STUB: not implemented") }
 
-        FrameSetPacket {
-            id: 0,
-            sequence_number: 0,
-            flags: flag,
-            length_in_bytes: data.len() as u16,
-            reliable_frame_index: 0,
-            sequenced_frame_index: 0,
-            ordered_frame_index: 0,
-            order_channel: 0,
-            compound_size: 0,
-            compound_id: 0,
-            fragment_index: 0,
-            data,
-        }
-    }
+    pub fn _deserialize(buf: Vec<u8>) -> Result<(Self, bool)> { panic!("STUB: not implemented") }
 
-    pub fn _deserialize(buf: Vec<u8>) -> Result<(Self, bool)> {
-        let mut reader = RaknetReader::new(buf);
+    pub fn serialize(&self) -> Result<Vec<u8>> { panic!("STUB: not implemented") }
 
-        let mut ret = Self {
-            id: 0,
-            sequence_number: 0,
-            flags: 0,
-            length_in_bytes: 0,
-            reliable_frame_index: 0,
-            sequenced_frame_index: 0,
-            ordered_frame_index: 0,
-            order_channel: 0,
-            compound_size: 0,
-            compound_id: 0,
-            fragment_index: 0,
-            data: vec![],
-        };
+    pub fn is_fragment(&self) -> bool { panic!("STUB: not implemented") }
 
-        ret.id = reader.read_u8().unwrap();
-        ret.sequence_number = reader.read_u24(Endian::Little).unwrap();
+    pub fn is_reliable(&self) -> Result<bool> { panic!("STUB: not implemented") }
 
-        //Top 3 bits are reliability type
-        //224 = 1110 0000(b)
-        ret.flags = reader.read_u8().unwrap();
+    pub fn is_ordered(&self) -> Result<bool> { panic!("STUB: not implemented") }
 
-        ret.length_in_bytes = reader.read_u16(Endian::Big).unwrap() / 8;
+    pub fn is_sequenced(&self) -> Result<bool> { panic!("STUB: not implemented") }
+    pub fn reliability(&self) -> Result<Reliability> { panic!("STUB: not implemented") }
 
-        if ret.is_reliable()? {
-            ret.reliable_frame_index = reader.read_u24(Endian::Little).unwrap();
-        }
-
-        if ret.is_sequenced()? {
-            ret.sequenced_frame_index = reader.read_u24(Endian::Little).unwrap();
-        }
-        if ret.is_ordered()? {
-            ret.ordered_frame_index = reader.read_u24(Endian::Little).unwrap();
-            ret.order_channel = reader.read_u8().unwrap();
-        }
-
-        //fourth bit is 1 when the frame is fragmented and part of a compound.
-        //flags and 16 [0001 0000(b)] == if fragmented
-        if (ret.flags & 16) != 0 {
-            ret.compound_size = reader.read_u32(Endian::Big).unwrap();
-            ret.compound_id = reader.read_u16(Endian::Big).unwrap();
-            ret.fragment_index = reader.read_u32(Endian::Big).unwrap();
-        }
-
-        let mut buf = vec![0u8; ret.length_in_bytes as usize].into_boxed_slice();
-        reader.read(&mut buf).unwrap();
-        ret.data.append(&mut buf.to_vec());
-
-        Ok((ret, reader.pos() == buf.len() as u64))
-    }
-
-    pub fn serialize(&self) -> Result<Vec<u8>> {
-        let mut writer = RaknetWriter::new();
-
-        let mut id = 0x80 | NEEDS_B_AND_AS_FLAG;
-
-        //set fragment flag , first fragment frame id == 0x84
-        if (self.flags & 16) != 0 && self.fragment_index != 0 {
-            id |= CONTINUOUS_SEND_FLAG;
-        }
-
-        writer.write_u8(id).unwrap();
-        writer
-            .write_u24(self.sequence_number, Endian::Little)
-            .unwrap();
-
-        //Top 3 bits are reliability type
-        //224 = 1110 0000(b)
-        writer.write_u8(self.flags).unwrap();
-        writer
-            .write_u16(self.length_in_bytes * 8, Endian::Big)
-            .unwrap();
-
-        if self.is_reliable()? {
-            writer
-                .write_u24(self.reliable_frame_index, Endian::Little)
-                .unwrap();
-        }
-
-        if self.is_sequenced()? {
-            writer
-                .write_u24(self.sequenced_frame_index, Endian::Little)
-                .unwrap();
-        }
-        if self.is_ordered()? {
-            writer
-                .write_u24(self.ordered_frame_index, Endian::Little)
-                .unwrap();
-            writer.write_u8(self.order_channel).unwrap();
-        }
-
-        //fourth bit is 1 when the frame is fragmented and part of a compound.
-        //flags and 16 [0001 0000(b)] == if fragmented
-        if (self.flags & 16) != 0 {
-            writer.write_u32(self.compound_size, Endian::Big).unwrap();
-            writer.write_u16(self.compound_id, Endian::Big).unwrap();
-            writer.write_u32(self.fragment_index, Endian::Big).unwrap();
-        }
-        writer.write(self.data.as_slice()).unwrap();
-
-        Ok(writer.get_raw_payload())
-    }
-
-    pub fn is_fragment(&self) -> bool {
-        (self.flags & 16) != 0
-    }
-
-    pub fn is_reliable(&self) -> Result<bool> {
-        let r = Reliability::from((self.flags & 224) >> 5)?;
-        Ok(matches!(
-            r,
-            Reliability::Reliable | Reliability::ReliableOrdered | Reliability::ReliableSequenced
-        ))
-    }
-
-    pub fn is_ordered(&self) -> Result<bool> {
-        let r = Reliability::from((self.flags & 224) >> 5)?;
-        Ok(matches!(
-            r,
-            Reliability::UnreliableSequenced
-                | Reliability::ReliableOrdered
-                | Reliability::ReliableSequenced
-        ))
-    }
-
-    pub fn is_sequenced(&self) -> Result<bool> {
-        let r = Reliability::from((self.flags & 224) >> 5)?;
-        Ok(matches!(
-            r,
-            Reliability::UnreliableSequenced | Reliability::ReliableSequenced
-        ))
-    }
-    pub fn reliability(&self) -> Result<Reliability> {
-        Reliability::from((self.flags & 224) >> 5)
-    }
-
-    pub fn _size(&self) -> Result<usize> {
-        let mut ret = 0;
-        // id
-        ret += 1;
-        // sequence number
-        ret += 3;
-        // flags
-        ret += 1;
-        // length_in_bits
-        ret += 2;
-
-        if self.is_reliable()? {
-            // reliable frame index
-            ret += 3;
-        }
-        if self.is_sequenced()? {
-            // sequenced frame index
-            ret += 3;
-        }
-        if self.is_ordered()? {
-            //ordered frame index + order channel
-            ret += 4;
-        }
-        if (self.flags & 16) != 0 {
-            //compound size + compound id + fragment index
-            ret += 10;
-        }
-        //body
-        ret += self.data.len();
-        Ok(ret)
-    }
+    pub fn _size(&self) -> Result<usize> { panic!("STUB: not implemented") }
 }
 
 pub struct FrameVec {
@@ -266,119 +67,9 @@ pub struct FrameVec {
 }
 
 impl FrameVec {
-    pub fn new(buf: Vec<u8>) -> Result<Self> {
-        let mut ret = Self {
-            id: 0,
-            sequence_number: 0,
-            frames: vec![],
-        };
+    pub fn new(buf: Vec<u8>) -> Result<Self> { panic!("STUB: not implemented") }
 
-        let size = buf.len();
-
-        let mut reader = RaknetReader::new(buf);
-
-        ret.id = reader.read_u8().unwrap();
-        ret.sequence_number = reader.read_u24(Endian::Little).unwrap();
-
-        while reader.pos() < size.try_into().unwrap() {
-            let mut frame = FrameSetPacket {
-                id: ret.id,
-                sequence_number: ret.sequence_number,
-                flags: 0,
-                length_in_bytes: 0,
-                reliable_frame_index: 0,
-                sequenced_frame_index: 0,
-                ordered_frame_index: 0,
-                order_channel: 0,
-                compound_size: 0,
-                compound_id: 0,
-                fragment_index: 0,
-                data: vec![],
-            };
-
-            //Top 3 bits are reliability type
-            //224 = 1110 0000(b)
-            frame.flags = reader.read_u8().unwrap();
-
-            frame.length_in_bytes = reader.read_u16(Endian::Big).unwrap() / 8;
-
-            if frame.is_reliable()? {
-                frame.reliable_frame_index = reader.read_u24(Endian::Little).unwrap();
-            }
-
-            if frame.is_sequenced()? {
-                frame.sequenced_frame_index = reader.read_u24(Endian::Little).unwrap();
-            }
-            if frame.is_ordered()? {
-                frame.ordered_frame_index = reader.read_u24(Endian::Little).unwrap();
-                frame.order_channel = reader.read_u8().unwrap();
-            }
-
-            //fourth bit is 1 when the frame is fragmented and part of a compound.
-            //flags and 16 [0001 0000(b)] == if fragmented
-            if (frame.flags & 16) != 0 {
-                frame.compound_size = reader.read_u32(Endian::Big).unwrap();
-                frame.compound_id = reader.read_u16(Endian::Big).unwrap();
-                frame.fragment_index = reader.read_u32(Endian::Big).unwrap();
-            }
-
-            let mut buf = vec![0u8; frame.length_in_bytes as usize].into_boxed_slice();
-            reader.read(&mut buf).unwrap();
-            frame.data.append(&mut buf.to_vec());
-            ret.frames.push(frame);
-        }
-
-        Ok(ret)
-    }
-
-    pub fn _serialize(&self) -> Result<Vec<u8>> {
-        let mut writer = RaknetWriter::new();
-
-        let id = 0x80 | 4 | 8;
-
-        writer.write_u8(id).unwrap();
-        writer
-            .write_u24(self.sequence_number, Endian::Little)
-            .unwrap();
-
-        for frame in &self.frames {
-            //Top 3 bits are reliability type
-            //224 = 1110 0000(b)
-            writer.write_u8(frame.flags).unwrap();
-            writer
-                .write_u16(frame.length_in_bytes * 8, Endian::Big)
-                .unwrap();
-
-            if frame.is_reliable()? {
-                writer
-                    .write_u24(frame.reliable_frame_index, Endian::Little)
-                    .unwrap();
-            }
-
-            if frame.is_sequenced()? {
-                writer
-                    .write_u24(frame.sequenced_frame_index, Endian::Little)
-                    .unwrap();
-            }
-            if frame.is_ordered()? {
-                writer
-                    .write_u24(frame.ordered_frame_index, Endian::Little)
-                    .unwrap();
-                writer.write_u8(frame.order_channel).unwrap();
-            }
-
-            //fourth bit is 1 when the frame is fragmented and part of a compound.
-            //flags and 8 [0000 1000(b)] == if fragmented
-            if (frame.flags & 0x08) != 0 {
-                writer.write_u32(frame.compound_size, Endian::Big).unwrap();
-                writer.write_u16(frame.compound_id, Endian::Big).unwrap();
-                writer.write_u32(frame.fragment_index, Endian::Big).unwrap();
-            }
-            writer.write(frame.data.as_slice()).unwrap();
-        }
-
-        Ok(writer.get_raw_payload())
-    }
+    pub fn _serialize(&self) -> Result<Vec<u8>> { panic!("STUB: not implemented") }
 }
 
 pub struct ACKSet {
@@ -388,49 +79,12 @@ pub struct ACKSet {
 }
 
 impl ACKSet {
-    pub fn new() -> Self {
-        ACKSet {
-            ack: vec![],
-            nack: vec![],
-            last_max: 0,
-        }
-    }
-    pub fn insert(&mut self, s: u32) {
-        if s != 0 {
-            if s > self.last_max && s != self.last_max + 1 {
-                self.nack.push((self.last_max + 1, s - 1));
-            }
+    pub fn new() -> Self { panic!("STUB: not implemented") }
+    pub fn insert(&mut self, s: u32) { panic!("STUB: not implemented") }
 
-            if s > self.last_max {
-                self.last_max = s;
-            }
-        }
+    pub fn get_ack(&mut self) -> Vec<(u32, u32)> { panic!("STUB: not implemented") }
 
-        for i in 0..self.ack.len() {
-            let a = self.ack[i];
-            if a.0 != 0 && s == a.0 - 1 {
-                self.ack[i].0 = s;
-                return;
-            }
-            if s == a.1 + 1 {
-                self.ack[i].1 = s;
-                return;
-            }
-        }
-        self.ack.push((s, s));
-    }
-
-    pub fn get_ack(&mut self) -> Vec<(u32, u32)> {
-        let ret = self.ack.clone();
-        self.ack.clear();
-        ret
-    }
-
-    pub fn get_nack(&mut self) -> Vec<(u32, u32)> {
-        let ret = self.nack.clone();
-        self.nack.clear();
-        ret
-    }
+    pub fn get_nack(&mut self) -> Vec<(u32, u32)> { panic!("STUB: not implemented") }
 }
 
 pub struct RecvQ {
@@ -443,135 +97,22 @@ pub struct RecvQ {
 }
 
 impl RecvQ {
-    pub fn new() -> Self {
-        Self {
-            sequence_number_ackset: ACKSet::new(),
-            packets: HashMap::new(),
-            fragment_queue: FragmentQ::new(),
-            ordered_packets: HashMap::new(),
-            sequenced_frame_index: 0,
-            last_ordered_index: 0,
-        }
-    }
+    pub fn new() -> Self { panic!("STUB: not implemented") }
 
-    pub fn insert(&mut self, frame: FrameSetPacket) -> Result<()> {
-        if self.packets.contains_key(&frame.sequence_number) {
-            return Ok(());
-        }
+    pub fn insert(&mut self, frame: FrameSetPacket) -> Result<()> { panic!("STUB: not implemented") }
 
-        self.sequence_number_ackset.insert(frame.sequence_number);
+    pub fn get_ack(&mut self) -> Vec<(u32, u32)> { panic!("STUB: not implemented") }
 
-        //The fourth parameter takes one of five major values. Lets say you send data 1,2,3,4,5,6. Here's the order and substance of what you might get back:
-        match frame.reliability()? {
-            // UNRELIABLE - 5, 1, 6
-            Reliability::Unreliable => {
-                self.packets.entry(frame.sequence_number).or_insert(frame);
-            }
-            // UNRELIABLE_SEQUENCED - 5 (6 was lost in transit, 1,2,3,4 arrived later than 5)
-            // With the UNRELIABLE_SEQUENCED transmission method, the game data does not need to arrive in every packet to avoid packet loss and retransmission,
-            // because the new packet represents the new state, and the new state can be used directly, without waiting for the old packet to arrive.
-            Reliability::UnreliableSequenced => {
-                let sequenced_frame_index = frame.sequenced_frame_index;
-                if sequenced_frame_index >= self.sequenced_frame_index {
-                    if let std::collections::hash_map::Entry::Vacant(e) =
-                        self.packets.entry(frame.sequence_number)
-                    {
-                        e.insert(frame);
-                        self.sequenced_frame_index = sequenced_frame_index + 1;
-                    }
-                }
-            }
-            // RELIABLE - 5, 1, 4, 6, 2, 3
-            Reliability::Reliable => {
-                self.packets.insert(frame.sequence_number, frame);
-            }
-            // RELIABLE_ORDERED - 1, 2, 3, 4, 5, 6
-            Reliability::ReliableOrdered => {
-                // if remote host not received ack , and local program has flush ordered packet. recvq will insert old packet caused memory leak.
-                if frame.ordered_frame_index < self.last_ordered_index {
-                    return Ok(());
-                }
+    pub fn get_nack(&mut self) -> Vec<(u32, u32)> { panic!("STUB: not implemented") }
 
-                if frame.is_fragment() {
-                    self.fragment_queue.insert(frame);
+    pub fn flush(&mut self, _peer_addr: &SocketAddr) -> Vec<FrameSetPacket> { panic!("STUB: not implemented") }
+    pub fn get_ordered_packet(&self) -> usize { panic!("STUB: not implemented") }
 
-                    for i in self.fragment_queue.flush()? {
-                        self.ordered_packets
-                            .entry(i.ordered_frame_index)
-                            .or_insert(i);
-                    }
-                } else {
-                    self.ordered_packets
-                        .entry(frame.ordered_frame_index)
-                        .or_insert(frame);
-                }
-            }
-            // RELIABLE_SEQUENCED - 5, 6 (1,2,3,4 arrived later than 5)
-            Reliability::ReliableSequenced => {
-                let sequenced_frame_index = frame.sequenced_frame_index;
-                if sequenced_frame_index >= self.sequenced_frame_index {
-                    if let std::collections::hash_map::Entry::Vacant(e) =
-                        self.packets.entry(frame.sequence_number)
-                    {
-                        e.insert(frame);
-                        self.sequenced_frame_index = sequenced_frame_index + 1;
-                    }
-                }
-            }
-        }
-        Ok(())
-    }
+    pub fn get_fragment_queue_size(&self) -> usize { panic!("STUB: not implemented") }
 
-    pub fn get_ack(&mut self) -> Vec<(u32, u32)> {
-        self.sequence_number_ackset.get_ack()
-    }
+    pub fn get_ordered_keys(&self) -> Vec<u32> { panic!("STUB: not implemented") }
 
-    pub fn get_nack(&mut self) -> Vec<(u32, u32)> {
-        self.sequence_number_ackset.get_nack()
-    }
-
-    pub fn flush(&mut self, _peer_addr: &SocketAddr) -> Vec<FrameSetPacket> {
-        let mut ret = vec![];
-        let mut ordered_keys: Vec<u32> = self.ordered_packets.keys().cloned().collect();
-
-        ordered_keys.sort_unstable();
-
-        for i in ordered_keys {
-            if i == self.last_ordered_index {
-                let frame = self.ordered_packets[&i].clone();
-                ret.push(frame);
-                self.ordered_packets.remove(&i);
-                //raknet_log!("{} : received ordered [{}]" , peer_addr ,self.last_ordered_index);
-                self.last_ordered_index = i + 1;
-            }
-        }
-
-        let mut packets_keys: Vec<u32> = self.packets.keys().cloned().collect();
-        packets_keys.sort_unstable();
-
-        for i in packets_keys {
-            let v = self.packets.get(&i).unwrap();
-            ret.push(v.clone());
-        }
-
-        self.packets.clear();
-        ret
-    }
-    pub fn get_ordered_packet(&self) -> usize {
-        self.ordered_packets.len()
-    }
-
-    pub fn get_fragment_queue_size(&self) -> usize {
-        self.fragment_queue.size()
-    }
-
-    pub fn get_ordered_keys(&self) -> Vec<u32> {
-        self.ordered_packets.keys().cloned().collect()
-    }
-
-    pub fn get_size(&self) -> usize {
-        self.packets.len()
-    }
+    pub fn get_size(&self) -> usize { panic!("STUB: not implemented") }
 }
 
 pub struct SendQ {
@@ -582,7 +123,7 @@ pub struct SendQ {
     sequenced_frame_index: u32,
     ordered_frame_index: u32,
     compound_id: u16,
-    //packet : FrameSetPacket , is_sent: bool ,last_tick : i64 , resend_times : u32
+    
     packets: Vec<FrameSetPacket>,
     rto: i64,
     srtt: i64,
@@ -595,270 +136,27 @@ impl SendQ {
     const RTO_UBOUND: i64 = 12000;
     const RTO_LBOUND: i64 = 50;
 
-    pub fn new(mtu: u16) -> Self {
-        Self {
-            mtu,
-            ack_sequence_number: 0,
-            sequence_number: 0,
-            packets: vec![],
-            sent_packet: vec![],
-            reliable_frame_index: 0,
-            sequenced_frame_index: 0,
-            ordered_frame_index: 0,
-            compound_id: 0,
+    pub fn new(mtu: u16) -> Self { panic!("STUB: not implemented") }
 
-            rto: SendQ::DEFAULT_TIMEOUT_MILLS,
-            srtt: SendQ::DEFAULT_TIMEOUT_MILLS,
-        }
-    }
+    pub fn insert(&mut self, reliability: Reliability, buf: &[u8]) -> Result<()> { panic!("STUB: not implemented") }
 
-    pub fn insert(&mut self, reliability: Reliability, buf: &[u8]) -> Result<()> {
-        match reliability {
-            Reliability::Unreliable => {
-                // 60 = max framesetpacket length(27) + udp overhead(28) + 5 ext
-                if buf.len() > (self.mtu - 60).into() {
-                    return Err(RaknetError::PacketSizeExceedMTU);
-                }
+    fn update_rto(&mut self, rtt: i64) { panic!("STUB: not implemented") }
 
-                let frame = FrameSetPacket::new(reliability, buf.to_vec());
-                self.packets.push(frame);
-            }
-            Reliability::UnreliableSequenced => {
-                // 60 = max framesetpacket length(27) + udp overhead(28) + 5 ext
-                if buf.len() > (self.mtu - 60).into() {
-                    return Err(RaknetError::PacketSizeExceedMTU);
-                }
+    pub fn get_rto(&self) -> i64 { panic!("STUB: not implemented") }
 
-                let mut frame = FrameSetPacket::new(reliability, buf.to_vec());
-                // I dont know why Sequenced packet need Ordered
-                // https://wiki.vg/Raknet_Protocol
-                frame.ordered_frame_index = self.ordered_frame_index;
-                frame.sequenced_frame_index = self.sequenced_frame_index;
-                self.packets.push(frame);
-                self.sequenced_frame_index += 1;
-            }
-            Reliability::Reliable => {
-                // 60 = max framesetpacket length(27) + udp overhead(28) + 5 ext
-                if buf.len() > (self.mtu - 60).into() {
-                    return Err(RaknetError::PacketSizeExceedMTU);
-                }
+    pub fn nack(&mut self, sequence: u32, tick: i64) { panic!("STUB: not implemented") }
 
-                let mut frame = FrameSetPacket::new(reliability, buf.to_vec());
-                frame.reliable_frame_index = self.reliable_frame_index;
-                self.packets.push(frame);
-                self.reliable_frame_index += 1;
-            }
-            Reliability::ReliableOrdered => {
-                // 60 = max framesetpacket length(27) + udp overhead(28) + 5 ext
-                if buf.len() < (self.mtu - 60).into() {
-                    let mut frame = FrameSetPacket::new(reliability, buf.to_vec());
-                    frame.reliable_frame_index = self.reliable_frame_index;
-                    frame.ordered_frame_index = self.ordered_frame_index;
-                    self.packets.push(frame);
-                    self.reliable_frame_index += 1;
-                    self.ordered_frame_index += 1;
-                } else {
-                    let max = (self.mtu - 60) as usize;
-                    let mut compound_size = buf.len() / max;
-                    if buf.len() % max != 0 {
-                        compound_size += 1;
-                    }
+    pub fn ack(&mut self, sequence: u32, tick: i64) { panic!("STUB: not implemented") }
 
-                    for i in 0..compound_size {
-                        let begin = (max * i) as usize;
-                        let end = if i == compound_size - 1 {
-                            buf.len()
-                        } else {
-                            (max * (i + 1)) as usize
-                        };
+    fn tick(&mut self, tick: i64) { panic!("STUB: not implemented") }
 
-                        let mut frame =
-                            FrameSetPacket::new(reliability.clone(), buf[begin..end].to_vec());
-                        // set fragment flag
-                        frame.flags |= 16;
-                        frame.compound_size = compound_size as u32;
-                        frame.compound_id = self.compound_id;
-                        frame.fragment_index = i as u32;
-                        frame.reliable_frame_index = self.reliable_frame_index;
-                        frame.ordered_frame_index = self.ordered_frame_index;
-                        self.packets.push(frame);
-                        self.reliable_frame_index += 1;
-                    }
-                    self.compound_id += 1;
-                    self.ordered_frame_index += 1;
-                }
-            }
-            Reliability::ReliableSequenced => {
-                // 60 = max framesetpacket length(27) + udp overhead(28) + 5 ext
-                if buf.len() > (self.mtu - 60).into() {
-                    return Err(RaknetError::PacketSizeExceedMTU);
-                }
+    pub fn flush(&mut self, tick: i64, peer_addr: &SocketAddr) -> Vec<FrameSetPacket> { panic!("STUB: not implemented") }
 
-                let mut frame = FrameSetPacket::new(reliability, buf.to_vec());
-                frame.reliable_frame_index = self.reliable_frame_index;
-                frame.sequenced_frame_index = self.sequenced_frame_index;
-                // I dont know why Sequenced packet need Ordered
-                // https://wiki.vg/Raknet_Protocol
-                frame.ordered_frame_index = self.ordered_frame_index;
-                self.packets.push(frame);
-                self.reliable_frame_index += 1;
-                self.sequenced_frame_index += 1;
-            }
-        };
-        Ok(())
-    }
+    pub fn is_empty(&self) -> bool { panic!("STUB: not implemented") }
 
-    fn update_rto(&mut self, rtt: i64) {
-        // SRTT = ( ALPHA * SRTT ) + ((1-ALPHA) * RTT)
-        // ALPHA = 0.8
-        self.srtt = ((self.srtt as f64 * 0.8) + (rtt as f64 * 0.2)) as i64;
-        // RTO = min[UBOUND,max[LBOUND,(BETA*SRTT)]]
-        // BETA = 1.5
-        let rto_right = (1.5 * self.srtt as f64) as i64;
-        let rto_right = if rto_right > SendQ::RTO_LBOUND {
-            rto_right
-        } else {
-            SendQ::RTO_LBOUND
-        };
-        self.rto = if rto_right < SendQ::RTO_UBOUND {
-            rto_right
-        } else {
-            SendQ::RTO_UBOUND
-        };
-    }
+    pub fn get_reliable_queue_size(&self) -> usize { panic!("STUB: not implemented") }
 
-    pub fn get_rto(&self) -> i64 {
-        self.rto
-    }
-
-    pub fn nack(&mut self, sequence: u32, tick: i64) {
-        for i in 0..self.sent_packet.len() {
-            let item = &mut self.sent_packet[i];
-            if item.1 && item.0.sequence_number == sequence {
-                raknet_log_debug!(
-                    "packet {}-{}-{} nack {} times",
-                    item.0.sequence_number,
-                    item.0.reliable_frame_index,
-                    item.0.ordered_frame_index,
-                    item.3 + 1
-                );
-                item.0.sequence_number = self.sequence_number;
-                self.sequence_number += 1;
-                item.2 = tick;
-                item.3 += 1;
-                item.4.push(item.0.sequence_number);
-            }
-        }
-    }
-
-    pub fn ack(&mut self, sequence: u32, tick: i64) {
-        if sequence != 0 && sequence != self.ack_sequence_number + 1 {
-            for i in self.ack_sequence_number + 1..sequence {
-                self.nack(i, tick);
-            }
-        }
-
-        self.ack_sequence_number = sequence;
-
-        let mut rtts = vec![];
-
-        for i in 0..self.sent_packet.len() {
-            let item = &mut self.sent_packet[i];
-            if item.0.sequence_number == sequence || item.4.contains(&sequence) {
-                rtts.push(tick - item.2);
-                self.sent_packet.remove(i);
-                break;
-            }
-        }
-
-        for i in rtts {
-            self.update_rto(i);
-        }
-    }
-
-    fn tick(&mut self, tick: i64) {
-        for i in 0..self.sent_packet.len() {
-            let p = &mut self.sent_packet[i];
-
-            let mut cur_rto = self.rto;
-
-            // TCP timeout calculation is RTOx2, so three consecutive packet losses will make it RTOx8, which is very terrible,
-            // while rust-raknet it is not x2, but x1.5 (Experimental results show that the value of 1.5 is relatively good), which has improved the transmission speed.
-            for _ in 0..p.3 {
-                cur_rto = (cur_rto as f64 * 1.5) as i64;
-            }
-
-            if p.1 && tick - p.2 >= cur_rto {
-                p.0.sequence_number = self.sequence_number;
-                self.sequence_number += 1;
-                p.1 = false;
-                p.4.push(p.0.sequence_number);
-            }
-        }
-    }
-
-    pub fn flush(&mut self, tick: i64, peer_addr: &SocketAddr) -> Vec<FrameSetPacket> {
-        self.tick(tick);
-
-        let mut ret = vec![];
-
-        if !self.sent_packet.is_empty() {
-            self.sent_packet
-                .sort_by(|x, y| x.0.sequence_number.cmp(&y.0.sequence_number));
-
-            for i in 0..self.sent_packet.len() {
-                let p = &mut self.sent_packet[i];
-                if !p.1 {
-                    raknet_log_debug!(
-                        "{} , packet {}-{}-{} resend {} times",
-                        peer_addr,
-                        p.0.sequence_number,
-                        p.0.reliable_frame_index,
-                        p.0.ordered_frame_index,
-                        p.3 + 1
-                    );
-                    ret.push(p.0.clone());
-                    p.1 = true;
-                    p.2 = tick;
-                    p.3 += 1;
-                }
-            }
-            return ret;
-        }
-
-        if !self.packets.is_empty() {
-            for i in 0..self.packets.len() {
-                self.packets[i].sequence_number = self.sequence_number;
-                self.sequence_number += 1;
-                ret.push(self.packets[i].clone());
-                if self.packets[i].is_reliable().unwrap() {
-                    self.sent_packet.push((
-                        self.packets[i].clone(),
-                        true,
-                        tick,
-                        0,
-                        vec![self.packets[i].sequence_number],
-                    ));
-                }
-            }
-
-            self.packets.clear();
-        }
-
-        ret
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.packets.is_empty() && self.sent_packet.is_empty()
-    }
-
-    pub fn get_reliable_queue_size(&self) -> usize {
-        self.packets.len()
-    }
-
-    pub fn get_sent_queue_size(&self) -> usize {
-        self.sent_packet.len()
-    }
+    pub fn get_sent_queue_size(&self) -> usize { panic!("STUB: not implemented") }
 }
 
 #[tokio::test]
@@ -899,7 +197,7 @@ async fn test_ackset() {
 
 #[tokio::test]
 async fn test_frame_serialize_deserialize() {
-    //minecraft 1.18.12 first frame packet
+    
     let p: Vec<u8> = [
         132, 0, 0, 0, 64, 0, 144, 0, 0, 0, 9, 146, 33, 7, 47, 57, 18, 128, 111, 0, 0, 0, 0, 20,
         200, 47, 41, 0,
@@ -1071,17 +369,17 @@ async fn test_client_packet1() {
 
 #[tokio::test]
 async fn test_client_packet2() {
-    // Connection Request - reliable [ reliable_frame_index = 0 ]
+    
     let p0 = [
         132, 0, 0, 0, 64, 0, 144, 0, 0, 0, 9, 162, 70, 235, 28, 218, 182, 26, 192, 0, 0, 0, 0, 16,
         151, 43, 113, 0,
     ];
-    // Connection Request - reliable [ reliable_frame_index = 0 ]
+    
     let p1 = [
         132, 1, 0, 0, 64, 0, 144, 0, 0, 0, 9, 162, 70, 235, 28, 218, 182, 26, 192, 0, 0, 0, 0, 16,
         151, 43, 113, 0,
     ];
-    // 2 frames Incompatible Protocol(extract data?) Connected ping - reliable ordered [ reliable_frame_index = 1 ]
+    
     let p2 = [
         132, 2, 0, 0, 96, 9, 64, 1, 0, 0, 0, 0, 0, 0, 19, 4, 83, 237, 234, 82, 74, 188, 6, 23, 0,
         225, 138, 0, 0, 0, 0, 254, 128, 0, 0, 0, 0, 0, 0, 196, 178, 112, 86, 5, 59, 97, 219, 15, 0,
@@ -1098,9 +396,9 @@ async fn test_client_packet2() {
         255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 16, 151, 56, 146, 0, 0, 72, 0, 0, 0, 0, 0, 16, 151, 56, 146,
     ];
-    // 1 frames Connected ping - unreliable
+    
     let p3 = [132, 3, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 16, 151, 56, 161];
-    // 1 frames game packet - reliable ordered [is_fragment reliable_frame_index = 2 ordered_frame_index = 1 ]
+    
     let p4 = [
         140, 4, 0, 0, 112, 44, 192, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 19, 0, 0, 0, 0, 0, 0, 254, 236,
         189, 203, 114, 234, 202, 214, 239, 249, 157, 94, 85, 61, 198, 119, 186, 181, 79, 72, 2,
@@ -1178,7 +476,7 @@ async fn test_client_packet2() {
         112, 180, 121, 41, 147, 209, 50, 25, 154, 235, 242, 64, 158, 188, 140, 137, 154, 183, 230,
         74, 160, 54, 60, 115, 52, 175, 89, 238, 60, 154, 154, 150, 247, 163, 187,
     ];
-    // 1 frames Incompatible Protocol(extract data?) - reliable ordered [reliable_frame_index = 1 ordered_frame_index = 0] == p2
+    
     let p5 = [
         140, 5, 0, 0, 96, 9, 64, 1, 0, 0, 0, 0, 0, 0, 19, 4, 83, 237, 234, 82, 74, 188, 6, 23, 0,
         225, 138, 0, 0, 0, 0, 254, 128, 0, 0, 0, 0, 0, 0, 196, 178, 112, 86, 5, 59, 97, 219, 15, 0,
@@ -1195,7 +493,7 @@ async fn test_client_packet2() {
         255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 4, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 16, 151, 56, 146,
     ];
-    // 1 frames game packet - reliable ordered [is_fragment reliable_frame_index = 2 ordered_frame_index = 1 ] == p4
+    
     let p6 = [
         140, 6, 0, 0, 112, 44, 192, 2, 0, 0, 1, 0, 0, 0, 0, 0, 0, 19, 0, 0, 0, 0, 0, 0, 254, 236,
         189, 203, 114, 234, 202, 214, 239, 249, 157, 94, 85, 61, 198, 119, 186, 181, 79, 72, 2,
